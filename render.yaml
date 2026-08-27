@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: plas-app
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run server
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
