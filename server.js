@@ -159,15 +159,18 @@ async function analyzeImage(request, response) {
     parsed.yolo = yolo
 
     try {
+      // บันทึก/ส่งเข้า Google Sheet เฉพาะผู้ที่ล็อกอินเท่านั้น
       const sessionUser = getSessionUser(request)
-      recordScan({
-        userId: sessionUser?.id || null,
-        email: sessionUser?.email || null,
-        plasticType: parsed.plastic_type || 'UNKNOWN',
-        isPlastic: Boolean(parsed.is_plastic),
-        confidence: Number(parsed.confidence) || 0,
-        recyclingCode: parsed.recycling_code ?? null
-      })
+      if (sessionUser) {
+        recordScan({
+          userId: sessionUser.id,
+          email: sessionUser.email,
+          plasticType: parsed.plastic_type || 'UNKNOWN',
+          isPlastic: Boolean(parsed.is_plastic),
+          confidence: Number(parsed.confidence) || 0,
+          recyclingCode: parsed.recycling_code ?? null
+        })
+      }
     } catch {
       // อย่าให้การบันทึกสถิติทำให้ผลวิเคราะห์ล้ม
     }
