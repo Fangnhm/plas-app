@@ -1,3 +1,5 @@
 node_modules/
 .env
 Key.env
+data/
+dist/
