@@ -49,11 +49,33 @@ function loadScans() {
   }
 }
 
+const sheetsWebhookUrl = String(process.env.SHEETS_WEBHOOK_URL || '').trim()
+
+// ส่งข้อมูลการสแกนเข้า Google Sheet (fire-and-forget ไม่ทำให้การสแกนล้ม)
+function sendToSheet(record) {
+  if (!sheetsWebhookUrl) return
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 5000)
+  fetch(sheetsWebhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      at: record.at,
+      email: record.email || 'guest',
+      plasticType: record.plasticType,
+      isPlastic: record.isPlastic,
+      confidence: record.confidence,
+      recyclingCode: record.recyclingCode ?? ''
+    }),
+    signal: controller.signal
+  }).catch(() => {}).finally(() => clearTimeout(timer))
+}
+
 // บันทึกผลการสแกนไว้ให้แอดมินดูสถิติ (ไม่เก็บรูป)
 export function recordScan(entry) {
   ensureStore()
   const scans = loadScans()
-  scans.push({
+  const record = {
     id: crypto.randomUUID(),
     at: new Date().toISOString(),
     userId: entry.userId || null,
@@ -62,8 +84,10 @@ export function recordScan(entry) {
     isPlastic: Boolean(entry.isPlastic),
     confidence: Number(entry.confidence) || 0,
     recyclingCode: entry.recyclingCode ?? null
-  })
+  }
+  scans.push(record)
   fs.writeFileSync(scansFile, JSON.stringify(scans.length > MAX_SCAN_LOG ? scans.slice(-MAX_SCAN_LOG) : scans))
+  sendToSheet(record)
 }
 
 function isAdmin(user) {

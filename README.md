@@ -69,6 +69,17 @@ npm run server
 - แอดมินเห็นเมนู "🛠 หลังบ้าน": สแกนทั้งหมด/วันนี้, จำนวนที่เจอพลาสติก vs ไม่ใช่, ความมั่นใจเฉลี่ย, กราฟแยกตามชนิด, ผู้ใช้ที่สแกนมากสุด, และรายการสแกนล่าสุด
 - API: `GET /api/admin/stats` (ต้องเป็นแอดมิน มิฉะนั้น 403)
 
+### เก็บผลการทดลองลง Google Sheet (แนะนำสำหรับรายงานโครงงาน)
+
+ทุกครั้งที่สแกนสำเร็จ เซิร์ฟเวอร์จะส่งข้อมูล 1 แถวเข้า Google Sheet ให้อัตโนมัติ (ข้อมูลไม่หายแม้ Render redeploy)
+
+1. เปิด Google Sheet ใหม่ → **Extensions > Apps Script** → วางโค้ดจากไฟล์ [`google-sheet-script.gs`](google-sheet-script.gs)
+2. **Deploy > New deployment** → type **Web app** → Execute as **Me** → access **Anyone** → Deploy → ก๊อป URL (`.../exec`)
+3. ใส่ URL นั้นในตัวแปร `SHEETS_WEBHOOK_URL` (ใน `Key.env` สำหรับรันในเครื่อง / ใน Environment ของ Render สำหรับตัว deploy) แล้ว restart
+4. ชีต **Scans** = 1 แถวต่อ 1 สแกน · ชีต **Summary** = สรุปจำนวนสแกน + จำนวนคน (อีเมลไม่ซ้ำ) + แยกตามชนิด
+
+ถ้า `SHEETS_WEBHOOK_URL` ว่าง ระบบจะข้ามขั้นตอนนี้ (ยังบันทึกลง `data/scans.json` ตามปกติ)
+
 > หมายเหตุ: เป็นระบบสำหรับโครงงาน/สาธิต ไม่มี rate limiting และไม่มีการยืนยันอีเมล
 
 ## Deploy ให้คนอื่นใช้ (GitHub + Render)

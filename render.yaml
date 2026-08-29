@@ -14,6 +14,8 @@ services:
         sync: false
       - key: ADMIN_EMAILS
         sync: false
+      - key: SHEETS_WEBHOOK_URL
+        sync: false
       - key: ROBOFLOW_ENABLED
         sync: false
       - key: ROBOFLOW_API_KEY
