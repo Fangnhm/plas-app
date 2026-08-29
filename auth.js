@@ -11,11 +11,6 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30 // 30 วัน
 const MAX_SCAN_LOG = 5000
 const isProd = String(process.env.NODE_ENV).toLowerCase() === 'production'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const adminEmails = String(process.env.ADMIN_EMAILS || '')
-  .toLowerCase()
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean)
 
 // session เก็บในหน่วยความจำ (หายเมื่อ restart — ผู้ใช้แค่ล็อกอินใหม่)
 const sessions = new Map()
@@ -90,43 +85,6 @@ export function recordScan(entry) {
   sendToSheet(record)
 }
 
-function isAdmin(user) {
-  return Boolean(user) && (user.role === 'admin' || adminEmails.includes(String(user.email).toLowerCase()))
-}
-
-function buildStats() {
-  const scans = loadScans()
-  const users = loadUsers()
-  const today = new Date().toISOString().slice(0, 10)
-  const byType = {}
-  const perUser = {}
-  let confidenceSum = 0
-
-  for (const s of scans) {
-    const key = s.isPlastic ? (s.plasticType || 'UNKNOWN') : 'ไม่ใช่พลาสติก'
-    byType[key] = (byType[key] || 0) + 1
-    perUser[s.email || 'ผู้เยี่ยมชม (ไม่ล็อกอิน)'] = (perUser[s.email || 'ผู้เยี่ยมชม (ไม่ล็อกอิน)'] || 0) + 1
-    confidenceSum += Number(s.confidence) || 0
-  }
-
-  return {
-    totalScans: scans.length,
-    scansToday: scans.filter((s) => String(s.at).slice(0, 10) === today).length,
-    totalUsers: users.length,
-    plasticFound: scans.filter((s) => s.isPlastic).length,
-    notPlastic: scans.filter((s) => !s.isPlastic).length,
-    avgConfidence: scans.length ? Math.round((confidenceSum / scans.length) * 100) : 0,
-    byType: Object.entries(byType).sort((a, b) => b[1] - a[1]),
-    topUsers: Object.entries(perUser).sort((a, b) => b[1] - a[1]).slice(0, 10),
-    recent: scans.slice(-25).reverse().map((s) => ({
-      at: s.at,
-      type: s.isPlastic ? (s.plasticType || 'UNKNOWN') : 'ไม่ใช่พลาสติก',
-      confidence: Math.round((Number(s.confidence) || 0) * 100),
-      user: s.email || 'ผู้เยี่ยมชม'
-    }))
-  }
-}
-
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   return { salt, hash: crypto.scryptSync(password, salt, 64).toString('hex') }
 }
@@ -145,8 +103,6 @@ function publicUser(u) {
     email: u.email,
     name: u.name,
     createdAt: u.createdAt,
-    role: u.role || 'user',
-    isAdmin: isAdmin(u),
     school: u.school || ''
   }
 }
@@ -208,7 +164,7 @@ function send(response, status, payload, headers = {}) {
 // คืน true ถ้าจัดการ request นี้แล้ว
 export async function handleAuth(request, response) {
   const url = request.url.split('?')[0]
-  if (!url.startsWith('/api/auth/') && url !== '/api/profile' && !url.startsWith('/api/admin/')) return false
+  if (!url.startsWith('/api/auth/') && url !== '/api/profile') return false
 
   try {
     if (request.method === 'POST' && url === '/api/auth/register') {
@@ -237,7 +193,6 @@ export async function handleAuth(request, response) {
         name: String(name).trim(),
         salt,
         hash,
-        role: users.length === 0 ? 'admin' : 'user', // ผู้สมัครคนแรกเป็นแอดมิน
         school: normalizeSchool(school),
         createdAt: new Date().toISOString()
       }
@@ -274,16 +229,6 @@ export async function handleAuth(request, response) {
         return true
       }
       send(response, 200, { user: publicUser(user) })
-      return true
-    }
-
-    if (request.method === 'GET' && url === '/api/admin/stats') {
-      const user = getSessionUser(request)
-      if (!isAdmin(user)) {
-        send(response, 403, { error: 'ต้องเป็นผู้ดูแลระบบ (แอดมิน) เท่านั้น' })
-        return true
-      }
-      send(response, 200, buildStats())
       return true
     }
 

@@ -62,16 +62,9 @@ npm run server
 - API: `POST /api/auth/register` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` · `PATCH /api/profile`
 - บน Render (`NODE_ENV=production`) cookie จะเพิ่มแฟล็ก `Secure` อัตโนมัติ
 
-### หน้าหลังบ้าน (แอดมิน)
-
-- **ผู้สมัครคนแรกเป็นแอดมินอัตโนมัติ** หรือกำหนดเองด้วย env `ADMIN_EMAILS=a@x.com,b@y.com`
-- ทุกครั้งที่มีการสแกนสำเร็จ เซิร์ฟเวอร์บันทึกลง `data/scans.json` (เวลา, ชนิดที่ได้, ความมั่นใจ, อีเมลผู้ใช้ถ้าล็อกอิน — **ไม่เก็บรูป**)
-- แอดมินเห็นเมนู "🛠 หลังบ้าน": สแกนทั้งหมด/วันนี้, จำนวนที่เจอพลาสติก vs ไม่ใช่, ความมั่นใจเฉลี่ย, กราฟแยกตามชนิด, ผู้ใช้ที่สแกนมากสุด, และรายการสแกนล่าสุด
-- API: `GET /api/admin/stats` (ต้องเป็นแอดมิน มิฉะนั้น 403)
-
 ### เก็บผลการทดลองลง Google Sheet (แนะนำสำหรับรายงานโครงงาน)
 
-ทุกครั้งที่สแกนสำเร็จ เซิร์ฟเวอร์จะส่งข้อมูล 1 แถวเข้า Google Sheet ให้อัตโนมัติ (ข้อมูลไม่หายแม้ Render redeploy)
+ทุกครั้งที่**ผู้ที่ล็อกอินแล้ว**สแกนสำเร็จ เซิร์ฟเวอร์จะบันทึกลง `data/scans.json` (เวลา, ชนิดที่ได้, ความมั่นใจ, อีเมล — **ไม่เก็บรูป**) และส่งข้อมูล 1 แถวเข้า Google Sheet ให้อัตโนมัติ (ข้อมูลในชีตไม่หายแม้ Render redeploy) — คนที่ไม่ได้ล็อกอินจะไม่ถูกบันทึก
 
 1. เปิด Google Sheet ใหม่ → **Extensions > Apps Script** → วางโค้ดจากไฟล์ [`google-sheet-script.gs`](google-sheet-script.gs)
 2. **Deploy > New deployment** → type **Web app** → Execute as **Me** → access **Anyone** → Deploy → ก๊อป URL (`.../exec`)
@@ -101,7 +94,7 @@ npm run server
    |---|---|
    | `GEMINI_API_KEY` | คีย์ Gemini |
    | `GEMINI_MODEL` | `gemini-3.6-flash` (หรือเว้นว่าง) |
-   | `ADMIN_EMAILS` | อีเมลแอดมิน |
+   | `SHEETS_WEBHOOK_URL` | URL ของ Apps Script (ดูหัวข้อ Google Sheet ด้านบน) |
    | `ROBOFLOW_ENABLED` | `false` |
    | `ROBOFLOW_API_KEY` / `ROBOFLOW_MODEL` / `ROBOFLOW_VERSION` | ของ Roboflow (ใส่อะไรก็ได้ถ้า `ROBOFLOW_ENABLED=false`) |
 
@@ -110,7 +103,7 @@ npm run server
 ### ข้อจำกัด Render free tier
 
 - **หลับหลัง 15 นาทีไม่มีคนใช้** — คำขอแรกหลังหลับจะช้า ~30–50 วินาที
-- **`data/users.json` และ `data/scans.json` เป็น ephemeral** — บัญชีสมาชิกและสถิติหลังบ้าน**หายทุกครั้งที่ redeploy/restart** (เหมาะกับงานสาธิต ถ้าต้องการถาวรต้องต่อ Persistent Disk แบบเสียเงิน หรือใช้ฐานข้อมูลภายนอก)
+- **`data/users.json` และ `data/scans.json` เป็น ephemeral** — บัญชีสมาชิก**หายทุกครั้งที่ redeploy/restart** (เหมาะกับงานสาธิต ถ้าต้องการถาวรต้องต่อ Persistent Disk แบบเสียเงิน หรือใช้ฐานข้อมูลภายนอก)
 - session อยู่ใน memory — restart แล้วผู้ใช้ต้องล็อกอินใหม่
 
 ## เปิดให้เครื่องอื่นในเครือข่ายเดียวกัน (ไม่ต้อง deploy)

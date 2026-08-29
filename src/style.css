@@ -1960,11 +1960,6 @@ th {
   background: rgba(209, 73, 91, 0.08);
 }
 
-.profile-admin-link {
-  margin-top: 18px;
-  width: 100%;
-}
-
 .auth-check {
   display: flex;
   align-items: flex-start;
@@ -2284,119 +2279,6 @@ th {
   .mock-map {
     height: 280px;
   }
-}
-
-/* ===== หลังบ้าน (แอดมิน) ===== */
-.admin-nav-btn,
-#admin-nav {
-  color: var(--mint) !important;
-}
-
-.admin-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
-  margin: 20px 0;
-}
-
-.admin-tiles div {
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.72);
-  text-align: center;
-}
-
-.admin-tiles strong {
-  display: block;
-  font-size: 1.6rem;
-  color: var(--mint);
-  letter-spacing: -0.02em;
-}
-
-.admin-tiles span {
-  font-size: 0.74rem;
-  color: var(--ink-soft);
-}
-
-.admin-block {
-  margin-top: 18px;
-  padding: 20px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.7);
-}
-
-.admin-block h3 {
-  margin: 0 0 14px;
-  font-size: 1rem;
-  color: var(--mint);
-}
-
-.admin-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-size: 0.84rem;
-}
-
-.admin-bar-row span {
-  width: 110px;
-  flex-shrink: 0;
-  color: var(--ink);
-}
-
-.admin-bar {
-  flex: 1;
-  height: 12px;
-  border-radius: 999px;
-  background: rgba(10, 167, 162, 0.12);
-  overflow: hidden;
-}
-
-.admin-bar i {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--mint);
-}
-
-.admin-bar-row b {
-  width: 44px;
-  text-align: right;
-  color: var(--ink-soft);
-}
-
-.admin-table-wrap {
-  overflow-x: auto;
-}
-
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-}
-
-.admin-table th,
-.admin-table td {
-  padding: 8px 10px;
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-  white-space: nowrap;
-}
-
-.admin-table th {
-  color: var(--ink-soft);
-  font-weight: 600;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-}
-
-.admin-empty {
-  color: var(--ink-soft);
-  font-size: 0.84rem;
-  margin: 0;
 }
 
 .history-empty {

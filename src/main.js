@@ -88,7 +88,6 @@ app.innerHTML = `
       <button data-view="materials">พลาสติก & เคมี</button>
       <button data-view="shops">หาร้านรับซื้อ</button>
       <button data-view="quiz">Quiz</button>
-      <button data-view="admin" id="admin-nav" hidden>🛠 หลังบ้าน</button>
     </nav>
     <button class="nav-cta scanner-link" data-view="scanner"><span>✦</span> AI SCANNER</button>
     <button class="auth-btn" id="auth-btn" data-view="auth">เข้าสู่ระบบ</button>
@@ -418,15 +417,6 @@ app.innerHTML = `
     <section class="section profile-view page-hidden" id="profile-view">
       <div class="profile-card" id="profile-card"></div>
     </section>
-
-    <section class="section admin-view page-hidden" id="admin-view">
-      <small class="kicker">ADMIN / หลังบ้าน</small>
-      <div class="section-head">
-        <h2>สรุปการใช้งาน<br><span>ระบบสแกน</span></h2>
-        <p>ข้อมูลรวมจากผู้ใช้ทุกคน (บันทึกที่เซิร์ฟเวอร์ ไม่เก็บรูปภาพ)</p>
-      </div>
-      <div class="admin-body" id="admin-body"></div>
-    </section>
   </main>
 
   <footer>
@@ -461,17 +451,14 @@ const pageGroups = {
   quiz: ['#quiz'],
   scanDetail: ['#scan-detail'],
   auth: ['#auth-view'],
-  profile: ['#profile-view'],
-  admin: ['#admin-view']
+  profile: ['#profile-view']
 }
 
-const allPageSections = ['.hero', '.ticker', '.scanner', '.story', '#system', '.materials', '#chemistry', '.outputs', '#shops', '#quiz', '#scan-detail', '#auth-view', '#profile-view', '#admin-view']
+const allPageSections = ['.hero', '.ticker', '.scanner', '.story', '#system', '.materials', '#chemistry', '.outputs', '#shops', '#quiz', '#scan-detail', '#auth-view', '#profile-view']
 
 function showPage(page) {
   if (page === 'profile' && !currentUser) page = 'auth'
-  if (page === 'admin' && !currentUser?.isAdmin) page = currentUser ? 'profile' : 'auth'
   if (page === 'profile') renderProfile()
-  if (page === 'admin') renderAdmin()
 
   allPageSections.forEach((selector) => {
     const element = document.querySelector(selector)
@@ -1186,8 +1173,6 @@ function updateAuthUI() {
     authBtn.textContent = 'เข้าสู่ระบบ'
     authBtn.dataset.view = 'auth'
   }
-  const adminNav = document.querySelector('#admin-nav')
-  if (adminNav) adminNav.hidden = !currentUser?.isAdmin
   applyStudentMode()
 }
 
@@ -1294,11 +1279,8 @@ function renderProfile() {
       <p class="profile-msg" id="profile-pwd-msg"></p>
     </form>
 
-    ${currentUser.isAdmin ? '<button class="button profile-admin-link" id="profile-admin" type="button">🛠 เปิดหน้าหลังบ้าน (แอดมิน)</button>' : ''}
     <button class="profile-logout" id="profile-logout" type="button">ออกจากระบบ</button>
   `
-
-  document.querySelector('#profile-admin')?.addEventListener('click', () => showPage('admin'))
 
   document.querySelector('#profile-school-toggle').addEventListener('click', async (event) => {
     const msg = document.querySelector('#profile-school-msg')
@@ -1370,58 +1352,6 @@ function renderProfile() {
     updateAuthUI()
     showPage('home')
   })
-}
-
-async function renderAdmin() {
-  const body = document.querySelector('#admin-body')
-  body.innerHTML = '<p class="admin-empty">กำลังโหลด...</p>'
-  try {
-    const response = await fetch('/api/admin/stats')
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || 'โหลดข้อมูลไม่สำเร็จ')
-    const maxType = Math.max(1, ...data.byType.map(([, n]) => n))
-    const dt = (iso) => new Date(iso).toLocaleString('th-TH', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-
-    body.innerHTML = `
-      <div class="admin-tiles">
-        <div><strong>${data.totalScans}</strong><span>สแกนทั้งหมด</span></div>
-        <div><strong>${data.scansToday}</strong><span>สแกนวันนี้</span></div>
-        <div><strong>${data.plasticFound}</strong><span>เจอพลาสติก</span></div>
-        <div><strong>${data.notPlastic}</strong><span>ไม่ใช่พลาสติก</span></div>
-        <div><strong>${data.totalUsers}</strong><span>สมาชิก</span></div>
-        <div><strong>${data.avgConfidence}%</strong><span>ความมั่นใจเฉลี่ย</span></div>
-      </div>
-
-      <div class="admin-block">
-        <h3>แยกตามชนิดที่เจอ</h3>
-        ${data.byType.length
-          ? data.byType.map(([type, n]) => `
-            <div class="admin-bar-row">
-              <span>${type}</span>
-              <div class="admin-bar"><i style="width:${Math.round((n / maxType) * 100)}%"></i></div>
-              <b>${n}</b>
-            </div>
-          `).join('')
-          : '<p class="admin-empty">ยังไม่มีข้อมูลการสแกน</p>'}
-      </div>
-
-      <div class="admin-block">
-        <h3>ผู้ใช้ที่สแกนมากสุด</h3>
-        ${data.topUsers.length
-          ? `<table class="admin-table"><tbody>${data.topUsers.map(([u, n]) => `<tr><td>${u}</td><td>${n} ครั้ง</td></tr>`).join('')}</tbody></table>`
-          : '<p class="admin-empty">—</p>'}
-      </div>
-
-      <div class="admin-block">
-        <h3>สแกนล่าสุด</h3>
-        ${data.recent.length
-          ? `<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>เวลา</th><th>ผล</th><th>มั่นใจ</th><th>ผู้ใช้</th></tr></thead><tbody>${data.recent.map((r) => `<tr><td>${dt(r.at)}</td><td>${r.type}</td><td>${r.confidence}%</td><td>${r.user}</td></tr>`).join('')}</tbody></table></div>`
-          : '<p class="admin-empty">ยังไม่มีการสแกน</p>'}
-      </div>
-    `
-  } catch (error) {
-    body.innerHTML = `<p class="admin-empty">${error.message}</p>`
-  }
 }
 
 fetchMe()
