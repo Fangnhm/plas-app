@@ -60,7 +60,11 @@ function sendToSheet(record) {
       plasticType: record.plasticType,
       isPlastic: record.isPlastic,
       confidence: record.confidence,
-      recyclingCode: record.recyclingCode ?? ''
+      rating: Number(record.rating) || 0,
+      recyclingCode: record.recyclingCode ?? '',
+      yoloAvailable: Boolean(record.yoloAvailable),
+      modelStatus: record.modelStatus || 'AI',
+      note: record.note || ''
     }),
     signal: controller.signal
   }).catch(() => {}).finally(() => clearTimeout(timer))
@@ -78,7 +82,11 @@ export function recordScan(entry) {
     plasticType: entry.plasticType || 'UNKNOWN',
     isPlastic: Boolean(entry.isPlastic),
     confidence: Number(entry.confidence) || 0,
-    recyclingCode: entry.recyclingCode ?? null
+    rating: Number(entry.rating) || 0,
+    recyclingCode: entry.recyclingCode ?? null,
+    yoloAvailable: Boolean(entry.yoloAvailable),
+    modelStatus: entry.modelStatus || 'AI',
+    note: entry.note || ''
   }
   scans.push(record)
   fs.writeFileSync(scansFile, JSON.stringify(scans.length > MAX_SCAN_LOG ? scans.slice(-MAX_SCAN_LOG) : scans))
