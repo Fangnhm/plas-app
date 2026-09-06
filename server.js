@@ -13,6 +13,9 @@ const roboflowVersion = process.env.ROBOFLOW_VERSION
 const roboflowHost = (process.env.ROBOFLOW_HOST || 'https://serverless.roboflow.com').replace(/\/$/, '')
 // เปิดด่าน YOLO เมื่อมีโมเดล Roboflow ที่จำแนก 6 ชนิดพร้อมใช้ (ตั้ง ROBOFLOW_ENABLED=true)
 const roboflowEnabled = String(process.env.ROBOFLOW_ENABLED || 'false').toLowerCase() === 'true'
+const roboflowConfigured = Boolean(roboflowApiKey && roboflowModel && roboflowVersion)
+const geminiConfigured = Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY)
+const sheetsConfigured = Boolean(process.env.SHEETS_WEBHOOK_URL)
 const mimeTypes = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml' }
 
 const KNOWN_TYPES = ['PET', 'HDPE', 'PVC', 'LDPE', 'PP', 'PS']
@@ -168,7 +171,11 @@ async function analyzeImage(request, response) {
           plasticType: parsed.plastic_type || 'UNKNOWN',
           isPlastic: Boolean(parsed.is_plastic),
           confidence: Number(parsed.confidence) || 0,
-          recyclingCode: parsed.recycling_code ?? null
+          rating: Number(Math.round((Number(parsed.confidence) || 0) * 5)) || 0,
+          recyclingCode: parsed.recycling_code ?? null,
+          yoloAvailable: Boolean(yolo.available),
+          modelStatus: yolo.available ? 'YOLO + Gemini' : 'Gemini only',
+          note: parsed.reason || ''
         })
       }
     } catch {
@@ -197,6 +204,74 @@ function serveStatic(request, response) {
 
 http.createServer(async (request, response) => {
   if (await handleAuth(request, response)) return
+  if (request.method === 'GET' && request.url === '/api/system-status') {
+    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+    response.end(JSON.stringify({
+      ok: true,
+      host,
+      port,
+      roboflowEnabled,
+      roboflowConfigured,
+      geminiConfigured,
+      sheetsConfigured,
+      yoloReady: roboflowEnabled && roboflowConfigured,
+      message: !geminiConfigured
+        ? 'ยังไม่ได้ตั้งค่า GEMINI_API_KEY'
+        : !roboflowEnabled
+          ? 'AI พร้อมใช้งานแล้ว ผู้ใช้งานสามารถใช้งานได้ทันที'
+          : roboflowConfigured
+            ? 'AI พร้อมใช้งานแล้ว ผู้ใช้งานสามารถใช้งานได้ทันที'
+            : 'YOLO เปิดใช้งานแต่ยังไม่ตั้งค่า model/version ให้ครบ'
+    }))
+    return
+  }
+  if (request.method === 'POST' && request.url === '/api/scan/rating') {
+    let body = ''
+    for await (const chunk of request) body += chunk
+
+    try {
+      const payload = body ? JSON.parse(body) : {}
+      const rating = Number(payload.rating)
+      if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+        throw new Error('คะแนนดาวต้องอยู่ระหว่าง 1 ถึง 5')
+      }
+
+      const sheetPayload = {
+        at: payload.at || new Date().toISOString(),
+        email: payload.email || 'guest',
+        plasticType: payload.plasticType || 'UNKNOWN',
+        isPlastic: Boolean(payload.isPlastic),
+        confidence: Number(payload.confidence) || 0,
+        rating,
+        recyclingCode: payload.recyclingCode ?? '',
+        yoloAvailable: Boolean(payload.yoloAvailable),
+        modelStatus: payload.modelStatus || 'AI',
+        note: payload.note || ''
+      }
+
+      if (process.env.SHEETS_WEBHOOK_URL) {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 5000)
+        try {
+          await fetch(process.env.SHEETS_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sheetPayload),
+            signal: controller.signal
+          })
+        } finally {
+          clearTimeout(timer)
+        }
+      }
+
+      response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+      response.end(JSON.stringify({ ok: true, rating }))
+    } catch (error) {
+      response.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' })
+      response.end(JSON.stringify({ ok: false, error: error.message }))
+    }
+    return
+  }
   if (request.method === 'POST' && request.url === '/api/analyze') return analyzeImage(request, response)
   if (request.method === 'GET') return serveStatic(request, response)
   response.writeHead(405)
